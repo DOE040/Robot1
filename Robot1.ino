@@ -70,7 +70,7 @@ void loop()
         right();
         break;
         
-      case 53:                                            
+      case 48:                                            
         Serial.println("Stop");
         stoprobot();
         break;      
@@ -126,4 +126,3 @@ void stoprobot()
   digitalWrite(IN3, LOW);
   digitalWrite(IN4, LOW);
 }
-
