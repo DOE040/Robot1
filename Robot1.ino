@@ -34,18 +34,55 @@ void setup()
 
 void loop()
 {
- while (mySerial.available())
+ if (Serial.available())
  {  
-  {  
+//      data = mySerial.readStringUntil('\n');
+      data = Serial.read();
+      //Serial.print(str);             
+    
+    btVal = (data.toInt());
+//    Serial.print("BlueTooth Value ");
+//    Serial.println(btVal);    
+
+
+  switch (btVal) 
+   {
+      case 49:                                
+        Serial.println("Forward");
+        forward();
+        break;
+
+      case 50:                 
+        Serial.println("Reverse");
+        reverse();
+        break;
+
+      case 51:         
+       Serial.println("Left");
+       left();
+        break;
+        
+      case 52:                     
+        Serial.println("Right");
+        right();
+        break;
+        
+      case 48:                                            
+        Serial.println("Stop");
+        stoprobot();
+        break;      
+
+  }
+ }
+ if (mySerial.available())
+ {  
 //      data = mySerial.readStringUntil('\n');
       data = mySerial.read();
       //Serial.print(str);             
-  } 
     
     btVal = (data.toInt());
     Serial.print("BlueTooth Value ");
     Serial.println(btVal);    
-
 
 
   switch (btVal) 
@@ -79,12 +116,6 @@ void loop()
 
  } 
  
-                                                              
-   if (mySerial.available() < 0)                              
-    {
-     //Serial.println("No Bluetooth Data ");          
-    }
-  
 }
 
 void forward()
