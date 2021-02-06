@@ -1,4 +1,4 @@
-#include<SoftwareSerial.h>
+#include <SoftwareSerial.h>
 
 // sketch_dec18b_remote_robot
 
@@ -9,14 +9,20 @@
 //#define EN1 6
 //#define EN2 5
 
-SoftwareSerial mySerial(2, 3); // RX, TX
+//
+// The hardware serial will be connected to the ESP32 WebSocket
+// The software serial will be connected to the BlueTooth interface
+//
+#define WebSocket Serial
+SoftwareSerial BlueTooth(2, 3); // RX, TX
 
 String data;
 int btVal;
 
 void setup() 
 {  
-  Serial.begin(115200);
+  WebSocket.begin(115200);
+  BlueTooth.begin(9600);
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
   pinMode(IN3, OUTPUT);
@@ -29,86 +35,85 @@ void setup()
   digitalWrite(IN4, LOW);
   //analogWrite(EN1,63);
   //analogWrite(EN2,63);
-  mySerial.begin(9600);
 }
 
 void loop()
 {
- if (Serial.available())
+ if (WebSocket.available())
  {  
-//      data = mySerial.readStringUntil('\n');
-      data = Serial.read();
-      //Serial.print(str);             
+//      data = BlueTooth.readStringUntil('\n');
+      data = BlueTooth.read();
+      //WebSocket.print(str);             
     
     btVal = (data.toInt());
-//    Serial.print("BlueTooth Value ");
-//    Serial.println(btVal);    
+    WebSocket.print("BlueTooth Value ");
+    WebSocket.println(btVal);    
 
 
   switch (btVal) 
    {
       case 49:                                
-        Serial.println("Forward");
+        WebSocket.println("Forward");
         forward();
         break;
 
       case 50:                 
-        Serial.println("Reverse");
+        WebSocket.println("Reverse");
         reverse();
         break;
 
       case 51:         
-       Serial.println("Left");
+       WebSocket.println("Left");
        left();
         break;
         
       case 52:                     
-        Serial.println("Right");
+        WebSocket.println("Right");
         right();
         break;
         
       case 48:                                            
-        Serial.println("Stop");
+        WebSocket.println("Stop");
         stoprobot();
         break;      
 
   }
  }
- if (mySerial.available())
+ if (BlueTooth.available())
  {  
-//      data = mySerial.readStringUntil('\n');
-      data = mySerial.read();
-      //Serial.print(str);             
+//      data = BlueTooth.readStringUntil('\n');
+      data = BlueTooth.read();
+      //WebSocket.print(str);             
     
     btVal = (data.toInt());
-    Serial.print("BlueTooth Value ");
-    Serial.println(btVal);    
+    WebSocket.print("BlueTooth Value ");
+    WebSocket.println(btVal);    
 
 
   switch (btVal) 
    {
       case 49:                                
-        Serial.println("Forward");
+        WebSocket.println("Forward");
         forward();
         break;
 
       case 50:                 
-        Serial.println("Reverse");
+        WebSocket.println("Reverse");
         reverse();
         break;
 
       case 51:         
-       Serial.println("Left");
+       WebSocket.println("Left");
        left();
         break;
         
       case 52:                     
-        Serial.println("Right");
+        WebSocket.println("Right");
         right();
         break;
         
       case 48:                                            
-        Serial.println("Stop");
+        WebSocket.println("Stop");
         stoprobot();
         break;      
 
