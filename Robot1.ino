@@ -115,7 +115,7 @@ void reverse()
 void left()
 {
   analogWrite(MOTORA_cwIN1, 0);
-  analogWrite(MOTORAccwIN2, 0);
+  analogWrite(MOTORAccwIN2, SPEED);
   analogWrite(MOTORB_cwIN3, SPEED);
   analogWrite(MOTORBccwIN4, 0);
 }
@@ -125,7 +125,7 @@ void right()
   analogWrite(MOTORA_cwIN1, SPEED);
   analogWrite(MOTORAccwIN2, 0);
   analogWrite(MOTORB_cwIN3, 0);
-  analogWrite(MOTORBccwIN4, 0);
+  analogWrite(MOTORBccwIN4, SPEED);
 }
 
 void stoprobot()
