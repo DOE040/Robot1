@@ -2,7 +2,7 @@
 
 // sketch_dec18b_remote_robot
 
-#define MOTORA_cwIN1 12
+#define MOTORA_cwIN1 6
 #define MOTORAccwIN2 11
 #define MOTORB_cwIN3 10
 #define MOTORBccwIN4 9
@@ -39,8 +39,8 @@ void setup()
 
 void loop()
 {
- if (WebSocket.available())
- {  
+  if (WebSocket.available())
+  {  
 //      data = BlueTooth.readStringUntil('\n');
       data = WebSocket.read();
       //WebSocket.print(str);             
@@ -48,39 +48,9 @@ void loop()
     btVal = (data.toInt());
     WebSocket.print("WebSocket Value ");
     WebSocket.println(btVal);    
-
-
-  switch (btVal) 
-   {
-      case 49:                                
-        WebSocket.println("Forward");
-        forward();
-        break;
-
-      case 50:                 
-        WebSocket.println("Reverse");
-        reverse();
-        break;
-
-      case 51:         
-       WebSocket.println("Left");
-       left();
-        break;
-        
-      case 52:                     
-        WebSocket.println("Right");
-        right();
-        break;
-        
-      case 48:                                            
-        WebSocket.println("Stop");
-        stoprobot();
-        break;      
-
   }
- }
- if (BlueTooth.available())
- {  
+  else if (BlueTooth.available())
+  {  
 //      data = BlueTooth.readStringUntil('\n');
       data = BlueTooth.read();
       //WebSocket.print(str);             
@@ -88,10 +58,14 @@ void loop()
     btVal = (data.toInt());
     WebSocket.print("BlueTooth Value ");
     WebSocket.println(btVal);    
-
+  }
+  else
+  {
+    btVal = -1;
+  }
 
   switch (btVal) 
-   {
+  {
       case 49:                                
         WebSocket.println("Forward");
         forward();
@@ -118,8 +92,6 @@ void loop()
         break;      
 
   }
-
- } 
  
 }
 
