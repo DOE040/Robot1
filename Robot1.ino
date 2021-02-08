@@ -2,10 +2,10 @@
 
 // sketch_dec18b_remote_robot
 
-#define IN1 12
-#define IN2 11
-#define IN3 10
-#define IN4 9
+#define MOTORA_cwIN1 12
+#define MOTORAccwIN2 11
+#define MOTORB_cwIN3 10
+#define MOTORBccwIN4 9
 //#define EN1 6
 //#define EN2 5
 
@@ -23,16 +23,16 @@ void setup()
 {  
   WebSocket.begin(115200);
   BlueTooth.begin(9600);
-  pinMode(IN1, OUTPUT);
-  pinMode(IN2, OUTPUT);
-  pinMode(IN3, OUTPUT);
-  pinMode(IN4, OUTPUT);
+  pinMode(MOTORA_cwIN1, OUTPUT);
+  pinMode(MOTORAccwIN2, OUTPUT);
+  pinMode(MOTORB_cwIN3, OUTPUT);
+  pinMode(MOTORBccwIN4, OUTPUT);
   //pinMode(EN1, OUTPUT);
   //pinMode(EN2, OUTPUT);
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, LOW);
+  digitalWrite(MOTORA_cwIN1, LOW);
+  digitalWrite(MOTORAccwIN2, LOW);
+  digitalWrite(MOTORB_cwIN3, LOW);
+  digitalWrite(MOTORBccwIN4, LOW);
   //analogWrite(EN1,63);
   //analogWrite(EN2,63);
 }
@@ -125,40 +125,40 @@ void loop()
 
 void forward()
 {
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, HIGH);
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, HIGH);
+  digitalWrite(MOTORA_cwIN1, LOW);
+  digitalWrite(MOTORAccwIN2, HIGH);
+  digitalWrite(MOTORB_cwIN3, LOW);
+  digitalWrite(MOTORBccwIN4, HIGH);
 }
 
 void reverse()
 {
-  digitalWrite(IN1, HIGH);
-  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, HIGH);
-  digitalWrite(IN4, LOW);
+  digitalWrite(MOTORA_cwIN1, HIGH);
+  digitalWrite(MOTORAccwIN2, LOW);
+  digitalWrite(MOTORB_cwIN3, HIGH);
+  digitalWrite(MOTORBccwIN4, LOW);
 }
 
 void left()
 {
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, HIGH);
-  digitalWrite(IN4, LOW);
+  digitalWrite(MOTORA_cwIN1, LOW);
+  digitalWrite(MOTORAccwIN2, LOW);
+  digitalWrite(MOTORB_cwIN3, HIGH);
+  digitalWrite(MOTORBccwIN4, LOW);
 }
 
 void right()
 {
-  digitalWrite(IN1, HIGH);
-  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, LOW);
+  digitalWrite(MOTORA_cwIN1, HIGH);
+  digitalWrite(MOTORAccwIN2, LOW);
+  digitalWrite(MOTORB_cwIN3, LOW);
+  digitalWrite(MOTORBccwIN4, LOW);
 }
 
 void stoprobot()
 {
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, LOW);
+  digitalWrite(MOTORA_cwIN1, LOW);
+  digitalWrite(MOTORAccwIN2, LOW);
+  digitalWrite(MOTORB_cwIN3, LOW);
+  digitalWrite(MOTORBccwIN4, LOW);
 }
