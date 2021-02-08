@@ -9,6 +9,7 @@
 //#define EN1 6
 //#define EN2 5
 
+#define SPEED 127
 //
 // The hardware serial will be connected to the ESP32 WebSocket
 // The software serial will be connected to the BlueTooth interface
@@ -29,10 +30,10 @@ void setup()
   pinMode(MOTORBccwIN4, OUTPUT);
   //pinMode(EN1, OUTPUT);
   //pinMode(EN2, OUTPUT);
-  digitalWrite(MOTORA_cwIN1, LOW);
-  digitalWrite(MOTORAccwIN2, LOW);
-  digitalWrite(MOTORB_cwIN3, LOW);
-  digitalWrite(MOTORBccwIN4, LOW);
+  analogWrite(MOTORA_cwIN1, 0);
+  analogWrite(MOTORAccwIN2, 0);
+  analogWrite(MOTORB_cwIN3, 0);
+  analogWrite(MOTORBccwIN4, 0);
   //analogWrite(EN1,63);
   //analogWrite(EN2,63);
 }
@@ -97,40 +98,40 @@ void loop()
 
 void forward()
 {
-  digitalWrite(MOTORA_cwIN1, LOW);
-  digitalWrite(MOTORAccwIN2, HIGH);
-  digitalWrite(MOTORB_cwIN3, LOW);
-  digitalWrite(MOTORBccwIN4, HIGH);
+  analogWrite(MOTORA_cwIN1, 0);
+  analogWrite(MOTORAccwIN2, SPEED);
+  analogWrite(MOTORB_cwIN3, 0);
+  analogWrite(MOTORBccwIN4, SPEED);
 }
 
 void reverse()
 {
-  digitalWrite(MOTORA_cwIN1, HIGH);
-  digitalWrite(MOTORAccwIN2, LOW);
-  digitalWrite(MOTORB_cwIN3, HIGH);
-  digitalWrite(MOTORBccwIN4, LOW);
+  analogWrite(MOTORA_cwIN1, SPEED);
+  analogWrite(MOTORAccwIN2, 0);
+  analogWrite(MOTORB_cwIN3, SPEED);
+  analogWrite(MOTORBccwIN4, 0);
 }
 
 void left()
 {
-  digitalWrite(MOTORA_cwIN1, LOW);
-  digitalWrite(MOTORAccwIN2, LOW);
-  digitalWrite(MOTORB_cwIN3, HIGH);
-  digitalWrite(MOTORBccwIN4, LOW);
+  analogWrite(MOTORA_cwIN1, 0);
+  analogWrite(MOTORAccwIN2, 0);
+  analogWrite(MOTORB_cwIN3, SPEED);
+  analogWrite(MOTORBccwIN4, 0);
 }
 
 void right()
 {
-  digitalWrite(MOTORA_cwIN1, HIGH);
-  digitalWrite(MOTORAccwIN2, LOW);
-  digitalWrite(MOTORB_cwIN3, LOW);
-  digitalWrite(MOTORBccwIN4, LOW);
+  analogWrite(MOTORA_cwIN1, SPEED);
+  analogWrite(MOTORAccwIN2, 0);
+  analogWrite(MOTORB_cwIN3, 0);
+  analogWrite(MOTORBccwIN4, 0);
 }
 
 void stoprobot()
 {
-  digitalWrite(MOTORA_cwIN1, LOW);
-  digitalWrite(MOTORAccwIN2, LOW);
-  digitalWrite(MOTORB_cwIN3, LOW);
-  digitalWrite(MOTORBccwIN4, LOW);
+  analogWrite(MOTORA_cwIN1, 0);
+  analogWrite(MOTORAccwIN2, 0);
+  analogWrite(MOTORB_cwIN3, 0);
+  analogWrite(MOTORBccwIN4, 0);
 }
