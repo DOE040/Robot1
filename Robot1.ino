@@ -22,7 +22,7 @@ int btVal;
 
 void setup() 
 {  
-  WebSocket.begin(115200);
+  WebSocket.begin(9600);
   BlueTooth.begin(9600);
   pinMode(MOTORA_cwIN1, OUTPUT);
   pinMode(MOTORAccwIN2, OUTPUT);
