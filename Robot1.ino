@@ -36,29 +36,30 @@ void setup()
   analogWrite(MOTORBccwIN4, 0);
   //analogWrite(EN1,63);
   //analogWrite(EN2,63);
+  WebSocket.setTimeout(1000);
 }
 
 void loop()
 {
   if (WebSocket.available())
   {  
-//      data = BlueTooth.readStringUntil('\n');
-      data = WebSocket.read();
-      //WebSocket.print(str);             
+      data = WebSocket.readStringUntil('\n');
+//      data = WebSocket.read();
+      BlueTooth.print(data);             
     
     btVal = (data.toInt());
-    WebSocket.print("WebSocket Value ");
-    WebSocket.println(btVal);    
+    BlueTooth.print("WebSocket Value ");
+    BlueTooth.println(btVal);    
   }
   else if (BlueTooth.available())
   {  
 //      data = BlueTooth.readStringUntil('\n');
       data = BlueTooth.read();
-      //WebSocket.print(str);             
+      //BlueTooth.print(str);             
     
     btVal = (data.toInt());
-    WebSocket.print("BlueTooth Value ");
-    WebSocket.println(btVal);    
+    BlueTooth.print("BlueTooth Value ");
+    BlueTooth.println(btVal);    
   }
   else
   {
@@ -68,27 +69,27 @@ void loop()
   switch (btVal) 
   {
       case 49:                                
-        WebSocket.println("Forward");
+        BlueTooth.println("Forward");
         forward();
         break;
 
       case 50:                 
-        WebSocket.println("Reverse");
+        BlueTooth.println("Reverse");
         reverse();
         break;
 
       case 51:         
-       WebSocket.println("Left");
+       BlueTooth.println("Left");
        left();
         break;
         
       case 52:                     
-        WebSocket.println("Right");
+        BlueTooth.println("Right");
         right();
         break;
         
       case 48:                                            
-        WebSocket.println("Stop");
+        BlueTooth.println("Stop");
         stoprobot();
         break;      
 
