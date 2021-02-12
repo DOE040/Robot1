@@ -1,129 +1,138 @@
-#include<SoftwareSerial.h>
+#include <SoftwareSerial.h>
 
 // sketch_dec18b_remote_robot
 
-#define IN1 12
-#define IN2 11
-#define IN3 10
-#define IN4 9
+#define MOTORA_cwIN1 6
+#define MOTORAccwIN2 11
+#define MOTORB_cwIN3 10
+#define MOTORBccwIN4 9
 //#define EN1 6
 //#define EN2 5
 
-SoftwareSerial mySerial(2, 3); // RX, TX
+#define SPEED 127
+//
+// The hardware serial will be connected to the ESP32 WebSocket
+// The software serial will be connected to the BlueTooth interface
+//
+#define WebSocket Serial
+SoftwareSerial BlueTooth(2, 3); // RX, TX
 
 String data;
 int btVal;
 
 void setup() 
 {  
-  Serial.begin(115200);
-  pinMode(IN1, OUTPUT);
-  pinMode(IN2, OUTPUT);
-  pinMode(IN3, OUTPUT);
-  pinMode(IN4, OUTPUT);
+  WebSocket.begin(9600);
+  BlueTooth.begin(9600);
+  pinMode(MOTORA_cwIN1, OUTPUT);
+  pinMode(MOTORAccwIN2, OUTPUT);
+  pinMode(MOTORB_cwIN3, OUTPUT);
+  pinMode(MOTORBccwIN4, OUTPUT);
   //pinMode(EN1, OUTPUT);
   //pinMode(EN2, OUTPUT);
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, LOW);
+  analogWrite(MOTORA_cwIN1, 0);
+  analogWrite(MOTORAccwIN2, 0);
+  analogWrite(MOTORB_cwIN3, 0);
+  analogWrite(MOTORBccwIN4, 0);
   //analogWrite(EN1,63);
   //analogWrite(EN2,63);
-  mySerial.begin(9600);
+  WebSocket.setTimeout(1000);
 }
 
 void loop()
 {
- while (mySerial.available())
- {  
+  if (WebSocket.available())
   {  
-//      data = mySerial.readStringUntil('\n');
-      data = mySerial.read();
-      //Serial.print(str);             
-  } 
+      data = WebSocket.readStringUntil('\n');
+//      data = WebSocket.read();
+      BlueTooth.print(data);             
     
     btVal = (data.toInt());
-    Serial.print("BlueTooth Value ");
-    Serial.println(btVal);    
-
-
+    BlueTooth.print("WebSocket Value ");
+    BlueTooth.println(btVal);    
+  }
+  else if (BlueTooth.available())
+  {  
+//      data = BlueTooth.readStringUntil('\n');
+      data = BlueTooth.read();
+      //BlueTooth.print(str);             
+    
+    btVal = (data.toInt());
+    BlueTooth.print("BlueTooth Value ");
+    BlueTooth.println(btVal);    
+  }
+  else
+  {
+    btVal = -1;
+  }
 
   switch (btVal) 
-   {
+  {
       case 49:                                
-        Serial.println("Forward");
+        BlueTooth.println("Forward");
         forward();
         break;
 
       case 50:                 
-        Serial.println("Reverse");
+        BlueTooth.println("Reverse");
         reverse();
         break;
 
       case 51:         
-       Serial.println("Left");
+       BlueTooth.println("Left");
        left();
         break;
         
       case 52:                     
-        Serial.println("Right");
+        BlueTooth.println("Right");
         right();
         break;
         
-      case 53:                                            
-        Serial.println("Stop");
+      case 48:                                            
+        BlueTooth.println("Stop");
         stoprobot();
         break;      
 
   }
-
- } 
  
-                                                              
-   if (mySerial.available() < 0)                              
-    {
-     //Serial.println("No Bluetooth Data ");          
-    }
-  
 }
 
 void forward()
 {
-  digitalWrite(IN1, HIGH);
-  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, HIGH);
-  digitalWrite(IN4, LOW);
+  analogWrite(MOTORA_cwIN1, 0);
+  analogWrite(MOTORAccwIN2, SPEED);
+  analogWrite(MOTORB_cwIN3, 0);
+  analogWrite(MOTORBccwIN4, SPEED);
 }
 
 void reverse()
 {
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, HIGH);
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, HIGH);
+  analogWrite(MOTORA_cwIN1, SPEED);
+  analogWrite(MOTORAccwIN2, 0);
+  analogWrite(MOTORB_cwIN3, SPEED);
+  analogWrite(MOTORBccwIN4, 0);
 }
 
 void left()
 {
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, HIGH);
-  digitalWrite(IN4, LOW);
+  analogWrite(MOTORA_cwIN1, 0);
+  analogWrite(MOTORAccwIN2, SPEED);
+  analogWrite(MOTORB_cwIN3, SPEED);
+  analogWrite(MOTORBccwIN4, 0);
 }
 
 void right()
 {
-  digitalWrite(IN1, HIGH);
-  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, LOW);
+  analogWrite(MOTORA_cwIN1, SPEED);
+  analogWrite(MOTORAccwIN2, 0);
+  analogWrite(MOTORB_cwIN3, 0);
+  analogWrite(MOTORBccwIN4, SPEED);
 }
 
 void stoprobot()
 {
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, LOW);
+  analogWrite(MOTORA_cwIN1, 0);
+  analogWrite(MOTORAccwIN2, 0);
+  analogWrite(MOTORB_cwIN3, 0);
+  analogWrite(MOTORBccwIN4, 0);
 }
-
