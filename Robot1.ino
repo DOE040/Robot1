@@ -1,21 +1,43 @@
 #include <SoftwareSerial.h>
+#include <NewPing.h>
 
 // sketch_dec18b_remote_robot
 
-#define MOTORA_cwIN1 6
+#define MOTORA_cwIN1  6
 #define MOTORAccwIN2 11
 #define MOTORB_cwIN3 10
-#define MOTORBccwIN4 9
+#define MOTORBccwIN4  9
 //#define EN1 6
 //#define EN2 5
-
+#define TRIGGER_PIN_FRONT  12
+#define ECHO_PIN_FRONT     12
+#define TRIGGER_PIN_RIGHT  13
+#define ECHO_PIN_RIGHT     13
+#define TRIGGER_PIN_LEFT    7
+#define ECHO_PIN_LEFT       7
+#define TRIGGER_PIN_BACK    8
+#define ECHO_PIN_BACK       8
+#define MAX_DISTANCE 400
 #define SPEED 127
+
+NewPing sonarFront(TRIGGER_PIN_FRONT, ECHO_PIN_FRONT, MAX_DISTANCE);
+
 //
 // The hardware serial will be connected to the ESP32 WebSocket
 // The software serial will be connected to the BlueTooth interface
 //
 #define WebSocket Serial
 SoftwareSerial BlueTooth(2, 3); // RX, TX
+
+// Define Variables
+
+float duration1;          // First HC-SR04 pulse duration value
+float duration2;          // Second HC-SR04 pulse duration value
+float distance1;          // Calculated distance in cm for First Sensor
+float distance2;          // Calculated distance in cm for Second Sensor
+float soundsp;            // Speed of sound in m/s
+float soundcm = 0.0343;   // Speed of sound in cm/ms
+int iterations = 5;
 
 String data;
 int btVal;
@@ -41,6 +63,11 @@ void setup()
 
 void loop()
 {
+  // Measure duration for first sensor
+  duration1 = sonarFront.ping_median(iterations);
+  // Calculate the distance
+  distance1 = (duration1 / 2) * soundcm;
+
   if (WebSocket.available())
   {  
       data = WebSocket.readStringUntil('\n');
@@ -92,6 +119,18 @@ void loop()
       case 48:                                            
         BlueTooth.println("Stop");
         stoprobot();
+        break;      
+
+      case 53:                                            
+        BlueTooth.print("Distance front: ");
+
+        if (distance1 >= 400 || distance1 <= 2) {
+          BlueTooth.print("Out of range");
+        }
+        else {
+          BlueTooth.print(distance1);
+          BlueTooth.print(" cm");
+        }
         break;      
 
   }
