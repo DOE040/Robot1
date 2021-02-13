@@ -47,7 +47,8 @@ void loop()
 //      data = WebSocket.read();
       BlueTooth.print(data);             
     
-    btVal = (data.toInt());
+    // btVal = (data.toInt());
+    btVal = data.charAt(data.length() - 1);
     BlueTooth.print("WebSocket Value ");
     BlueTooth.println(btVal);    
   }
