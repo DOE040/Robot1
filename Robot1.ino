@@ -94,11 +94,18 @@ void loop()
     btVal = -1;
   }
 
+  if (distance1 < 6)
+  {
+    stoprobot();
+  }
   switch (btVal) 
   {
       case 49:                                
         BlueTooth.println("Forward");
-        forward();
+        if (distance1 > 5)
+          forward();
+        else
+          BlueTooth.println("BLOCKED by sensor");
         break;
 
       case 50:                 
@@ -125,11 +132,11 @@ void loop()
         BlueTooth.print("Distance front: ");
 
         if (distance1 >= 400 || distance1 <= 2) {
-          BlueTooth.print("Out of range");
+          BlueTooth.println("Out of range");
         }
         else {
           BlueTooth.print(distance1);
-          BlueTooth.print(" cm");
+          BlueTooth.println(" cm");
         }
         break;      
 
