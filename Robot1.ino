@@ -38,6 +38,9 @@ float distance2;          // Calculated distance in cm for Second Sensor
 float soundsp;            // Speed of sound in m/s
 float soundcm = 0.0343;   // Speed of sound in cm/ms
 int iterations = 5;
+unsigned long LastLoop, PreviousLoop, LoopTime;
+unsigned long LoopMin,  LoopAvg,      LoopMax;
+unsigned long LoopCount, InitTime;
 
 String data;
 int btVal;
@@ -59,10 +62,30 @@ void setup()
   //analogWrite(EN1,63);
   //analogWrite(EN2,63);
   WebSocket.setTimeout(1000);
+
+  InitTime  = micros();
+  LastLoop  = InitTime;
+  LoopMin   = 9999;
+  LoopMax   =    0;
 }
 
 void loop()
 {
+  LoopCount++;
+  PreviousLoop = LastLoop;
+  LastLoop     = micros();
+  //
+  // micros() rolls over every 70 minutes.
+  // when that happens, start counting again
+  //
+  if (LastLoop > PreviousLoop)
+    LoopTime     = LastLoop - PreviousLoop;
+  else
+    LoopCount = 1;
+  if (LoopCount > 1 && LoopTime < LoopMin) LoopMin = LoopTime;
+  if (LoopTime > LoopMax)                  LoopMax = LoopTime;
+  LoopAvg      = LastLoop / LoopCount;
+
   // Measure duration for first sensor
   duration1 = sonarFront.ping_median(iterations);
   // Calculate the distance
@@ -138,6 +161,12 @@ void loop()
           BlueTooth.print(distance1);
           BlueTooth.println(" cm");
         }
+        BlueTooth.print("LoopCount: "); BlueTooth.print(LoopCount);       BlueTooth.println("");
+        BlueTooth.print("LoopTime : "); BlueTooth.print(LoopTime/1000.0); BlueTooth.println("[ms]");
+        BlueTooth.print("LoopMin  : "); BlueTooth.print(LoopMin/1000.0);  BlueTooth.println("[ms]");
+        BlueTooth.print("LoopAvg  : "); BlueTooth.print(LoopAvg/1000.0);  BlueTooth.println("[ms]");
+        BlueTooth.print("LoopMax  : "); BlueTooth.print(LoopMax/1000.0);  BlueTooth.println("[ms]");
+
         break;      
 
   }
