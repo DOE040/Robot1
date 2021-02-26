@@ -1,21 +1,46 @@
 #include <SoftwareSerial.h>
+#include <NewPing.h>
 
 // sketch_dec18b_remote_robot
 
-#define MOTORA_cwIN1 6
+#define MOTORA_cwIN1  6
 #define MOTORAccwIN2 11
 #define MOTORB_cwIN3 10
-#define MOTORBccwIN4 9
+#define MOTORBccwIN4  9
 //#define EN1 6
 //#define EN2 5
-
+#define TRIGGER_PIN_FRONT  12
+#define ECHO_PIN_FRONT     12
+#define TRIGGER_PIN_RIGHT  13
+#define ECHO_PIN_RIGHT     13
+#define TRIGGER_PIN_LEFT    7
+#define ECHO_PIN_LEFT       7
+#define TRIGGER_PIN_BACK    8
+#define ECHO_PIN_BACK       8
+#define MAX_DISTANCE 400
 #define SPEED 127
+
+NewPing sonarFront(TRIGGER_PIN_FRONT, ECHO_PIN_FRONT, MAX_DISTANCE);
+
 //
 // The hardware serial will be connected to the ESP32 WebSocket
 // The software serial will be connected to the BlueTooth interface
 //
 #define WebSocket Serial
 SoftwareSerial BlueTooth(2, 3); // RX, TX
+
+// Define Variables
+
+float duration1;          // First HC-SR04 pulse duration value
+float duration2;          // Second HC-SR04 pulse duration value
+float distance1;          // Calculated distance in cm for First Sensor
+float distance2;          // Calculated distance in cm for Second Sensor
+float soundsp;            // Speed of sound in m/s
+float soundcm = 0.0343;   // Speed of sound in cm/ms
+int iterations = 5;
+unsigned long LastLoop, PreviousLoop, LoopTime;
+unsigned long LoopMin,  LoopAvg,      LoopMax;
+unsigned long LoopCount, InitTime;
 
 String data;
 int btVal;
@@ -37,10 +62,35 @@ void setup()
   //analogWrite(EN1,63);
   //analogWrite(EN2,63);
   WebSocket.setTimeout(1000);
+
+  InitTime  = micros();
+  LastLoop  = InitTime;
+  LoopMin   = 9999;
+  LoopMax   =    0;
 }
 
 void loop()
 {
+  LoopCount++;
+  PreviousLoop = LastLoop;
+  LastLoop     = micros();
+  //
+  // micros() rolls over every 70 minutes.
+  // when that happens, start counting again
+  //
+  if (LastLoop > PreviousLoop)
+    LoopTime     = LastLoop - PreviousLoop;
+  else
+    LoopCount = 1;
+  if (LoopCount > 1 && LoopTime < LoopMin) LoopMin = LoopTime;
+  if (LoopTime > LoopMax)                  LoopMax = LoopTime;
+  LoopAvg      = LastLoop / LoopCount;
+
+  // Measure duration for first sensor
+  duration1 = sonarFront.ping_median(iterations);
+  // Calculate the distance
+  distance1 = (duration1 / 2) * soundcm;
+
   if (WebSocket.available())
   {  
       data = WebSocket.readStringUntil('\n');
@@ -67,11 +117,18 @@ void loop()
     btVal = -1;
   }
 
+  if (distance1 < 6)
+  {
+    stoprobot();
+  }
   switch (btVal) 
   {
       case 49:                                
         BlueTooth.println("Forward");
-        forward();
+        if (distance1 > 5)
+          forward();
+        else
+          BlueTooth.println("BLOCKED by sensor");
         break;
 
       case 50:                 
@@ -92,6 +149,24 @@ void loop()
       case 48:                                            
         BlueTooth.println("Stop");
         stoprobot();
+        break;      
+
+      case 53:                                            
+        BlueTooth.print("Distance front: ");
+
+        if (distance1 >= 400 || distance1 <= 2) {
+          BlueTooth.println("Out of range");
+        }
+        else {
+          BlueTooth.print(distance1);
+          BlueTooth.println(" cm");
+        }
+        BlueTooth.print("LoopCount: "); BlueTooth.print(LoopCount);       BlueTooth.println("");
+        BlueTooth.print("LoopTime : "); BlueTooth.print(LoopTime/1000.0); BlueTooth.println("[ms]");
+        BlueTooth.print("LoopMin  : "); BlueTooth.print(LoopMin/1000.0);  BlueTooth.println("[ms]");
+        BlueTooth.print("LoopAvg  : "); BlueTooth.print(LoopAvg/1000.0);  BlueTooth.println("[ms]");
+        BlueTooth.print("LoopMax  : "); BlueTooth.print(LoopMax/1000.0);  BlueTooth.println("[ms]");
+
         break;      
 
   }
