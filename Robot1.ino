@@ -1,14 +1,29 @@
 #include <SoftwareSerial.h>
+// Include the TimerOne Library from Paul Stoffregen
+#include "TimerOne.h"
 #include <NewPing.h>
+// Constants for Interrupt Pins
+// Change values if not using Arduino Uno
+ 
+const byte MOTOR1 = 2;  // Motor 1 Interrupt Pin - INT 0
+const byte MOTOR2 = 3;  // Motor 2 Interrupt Pin - INT 1
+ 
+// Integers for pulse counters
+unsigned int counter1 = 0;
+unsigned int counter2 = 0;
+ 
+// Float for number of slots in encoder disk
+float diskslots = 20;  // Change to match value of encoder disk
+ 
 
 // sketch_dec18b_remote_robot
 
-#define MOTORA_cwIN1  6
-#define MOTORAccwIN2 11
-#define MOTORB_cwIN3 10
-#define MOTORBccwIN4  9
-//#define EN1 6
-//#define EN2 5
+#define MOTORA_cwIN1 A2
+#define MOTORAccwIN2 A3
+#define MOTORB_cwIN3 A4
+#define MOTORBccwIN4 A5
+#define MOTORA_EN1    6
+#define MOTORB_EN2   11
 #define TRIGGER_PIN_FRONT  12
 #define ECHO_PIN_FRONT     12
 #define TRIGGER_PIN_RIGHT  13
@@ -18,7 +33,7 @@
 #define TRIGGER_PIN_BACK    8
 #define ECHO_PIN_BACK       8
 #define MAX_DISTANCE 400
-#define SPEED 127
+#define SPEED 200
 
 NewPing sonarFront(TRIGGER_PIN_FRONT, ECHO_PIN_FRONT, MAX_DISTANCE);
 
@@ -27,7 +42,7 @@ NewPing sonarFront(TRIGGER_PIN_FRONT, ECHO_PIN_FRONT, MAX_DISTANCE);
 // The software serial will be connected to the BlueTooth interface
 //
 #define WebSocket Serial
-SoftwareSerial BlueTooth(2, 3); // RX, TX
+SoftwareSerial BlueTooth(4, 5); // RX, TX
 
 // Define Variables
 
@@ -44,29 +59,74 @@ unsigned long LoopCount, InitTime;
 
 String data;
 int btVal;
-
+// Interrupt Service Routines
+ 
+// Motor 1 pulse count ISR
+void ISR_count1()  
+{
+  counter1++;  // increment Motor 1 counter value
+} 
+ 
+// Motor 2 pulse count ISR
+void ISR_count2()  
+{
+  counter2++;  // increment Motor 2 counter value
+} 
+ 
+// TimerOne ISR
+void ISR_timerone()
+{
+  Timer1.detachInterrupt();  // Stop the timer
+  if(counter1 > 0)
+  {
+    BlueTooth.print("Motor Speed 1: "); 
+    float rotation1 = (counter1 / diskslots) * 60.00;  // calculate RPM for Motor 1
+    BlueTooth.print(rotation1);  
+    BlueTooth.print(" RPM - "); 
+    counter1 = 0;  //  reset counter to zero
+  }
+  if(counter2 > 0)
+  {
+    BlueTooth.print("Motor Speed 2: "); 
+    float rotation2 = (counter2 / diskslots) * 60.00;  // calculate RPM for Motor 2
+    BlueTooth.print(rotation2);  
+    BlueTooth.println(" RPM"); 
+    counter2 = 0;  //  reset counter to zero
+  }
+  Timer1.attachInterrupt( ISR_timerone );  // Enable the timer
+}
+ 
 void setup() 
 {  
   WebSocket.begin(9600);
   BlueTooth.begin(9600);
+  analogReference(INTERNAL);
   pinMode(MOTORA_cwIN1, OUTPUT);
   pinMode(MOTORAccwIN2, OUTPUT);
   pinMode(MOTORB_cwIN3, OUTPUT);
   pinMode(MOTORBccwIN4, OUTPUT);
   //pinMode(EN1, OUTPUT);
   //pinMode(EN2, OUTPUT);
-  analogWrite(MOTORA_cwIN1, 0);
-  analogWrite(MOTORAccwIN2, 0);
-  analogWrite(MOTORB_cwIN3, 0);
-  analogWrite(MOTORBccwIN4, 0);
-  //analogWrite(EN1,63);
-  //analogWrite(EN2,63);
+  digitalWrite(MOTORA_cwIN1, 0);
+  digitalWrite(MOTORAccwIN2, 0);
+  digitalWrite(MOTORB_cwIN3, 0);
+  digitalWrite(MOTORBccwIN4, 0);
+  analogWrite(MOTORA_EN1,    0);
+  analogWrite(MOTORB_EN2,    0);
+
   WebSocket.setTimeout(1000);
 
   InitTime  = micros();
   LastLoop  = InitTime;
   LoopMin   = 9999;
   LoopMax   =    0;
+
+  Timer1.initialize(1000000); // set timer for 1sec
+  // Increase counter 1 when speed sensor pin goes High
+  attachInterrupt(digitalPinToInterrupt (MOTOR1), ISR_count1, RISING);
+  // Increase counter 2 when speed sensor pin goes High
+  attachInterrupt(digitalPinToInterrupt (MOTOR2), ISR_count2, RISING);
+  Timer1.attachInterrupt( ISR_timerone ); // Enable the timer
 }
 
 void loop()
@@ -166,6 +226,8 @@ void loop()
         BlueTooth.print("LoopMin  : "); BlueTooth.print(LoopMin/1000.0);  BlueTooth.println("[ms]");
         BlueTooth.print("LoopAvg  : "); BlueTooth.print(LoopAvg/1000.0);  BlueTooth.println("[ms]");
         BlueTooth.print("LoopMax  : "); BlueTooth.print(LoopMax/1000.0);  BlueTooth.println("[ms]");
+        BlueTooth.print("Analog0  : "); BlueTooth.print(analogRead(A0));  BlueTooth.println("");
+        BlueTooth.print("Analog1  : "); BlueTooth.print(analogRead(A1));  BlueTooth.println("");
 
         break;      
 
@@ -175,40 +237,50 @@ void loop()
 
 void forward()
 {
-  analogWrite(MOTORA_cwIN1, 0);
-  analogWrite(MOTORAccwIN2, SPEED);
-  analogWrite(MOTORB_cwIN3, 0);
-  analogWrite(MOTORBccwIN4, SPEED);
+  digitalWrite(MOTORA_cwIN1, 0);
+  digitalWrite(MOTORAccwIN2, 1);
+  digitalWrite(MOTORB_cwIN3, 0);
+  digitalWrite(MOTORBccwIN4, 1);
+  analogWrite(MOTORA_EN1,    SPEED);
+  analogWrite(MOTORB_EN2,    SPEED);
 }
 
 void reverse()
 {
-  analogWrite(MOTORA_cwIN1, SPEED);
-  analogWrite(MOTORAccwIN2, 0);
-  analogWrite(MOTORB_cwIN3, SPEED);
-  analogWrite(MOTORBccwIN4, 0);
+  digitalWrite(MOTORA_cwIN1, 1);
+  digitalWrite(MOTORAccwIN2, 0);
+  digitalWrite(MOTORB_cwIN3, 1);
+  digitalWrite(MOTORBccwIN4, 0);
+  analogWrite(MOTORA_EN1,    SPEED);
+  analogWrite(MOTORB_EN2,    SPEED);
 }
 
 void left()
 {
-  analogWrite(MOTORA_cwIN1, 0);
-  analogWrite(MOTORAccwIN2, SPEED);
-  analogWrite(MOTORB_cwIN3, SPEED);
-  analogWrite(MOTORBccwIN4, 0);
+  digitalWrite(MOTORA_cwIN1, 0);
+  digitalWrite(MOTORAccwIN2, 1);
+  digitalWrite(MOTORB_cwIN3, 1);
+  digitalWrite(MOTORBccwIN4, 0);
+  analogWrite(MOTORA_EN1,    SPEED);
+  analogWrite(MOTORB_EN2,    SPEED);
 }
 
 void right()
 {
-  analogWrite(MOTORA_cwIN1, SPEED);
-  analogWrite(MOTORAccwIN2, 0);
-  analogWrite(MOTORB_cwIN3, 0);
-  analogWrite(MOTORBccwIN4, SPEED);
+  digitalWrite(MOTORA_cwIN1, 1);
+  digitalWrite(MOTORAccwIN2, 0);
+  digitalWrite(MOTORB_cwIN3, 0);
+  digitalWrite(MOTORBccwIN4, 1);
+  analogWrite(MOTORA_EN1,    SPEED);
+  analogWrite(MOTORB_EN2,    SPEED);
 }
 
 void stoprobot()
 {
-  analogWrite(MOTORA_cwIN1, 0);
-  analogWrite(MOTORAccwIN2, 0);
-  analogWrite(MOTORB_cwIN3, 0);
-  analogWrite(MOTORBccwIN4, 0);
+  digitalWrite(MOTORA_cwIN1, 0);
+  digitalWrite(MOTORAccwIN2, 0);
+  digitalWrite(MOTORB_cwIN3, 0);
+  digitalWrite(MOTORBccwIN4, 0);
+  analogWrite(MOTORA_EN1,    0);
+  analogWrite(MOTORB_EN2,    0);
 }
