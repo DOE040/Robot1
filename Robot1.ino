@@ -1,7 +1,9 @@
 #include <SoftwareSerial.h>
+#include <NewPing.h>
 // Include the TimerOne Library from Paul Stoffregen
 #include "TimerOne.h"
-#include <NewPing.h>
+
+ 
 // Constants for Interrupt Pins
 // Change values if not using Arduino Uno
  
@@ -24,6 +26,9 @@ float diskslots = 20;  // Change to match value of encoder disk
 #define MOTORBccwIN4 A5
 #define MOTORA_EN1    6
 #define MOTORB_EN2   11
+
+#define SPEED 200
+
 #define TRIGGER_PIN_FRONT  12
 #define ECHO_PIN_FRONT     12
 #define TRIGGER_PIN_RIGHT  13
@@ -33,7 +38,6 @@ float diskslots = 20;  // Change to match value of encoder disk
 #define TRIGGER_PIN_BACK    8
 #define ECHO_PIN_BACK       8
 #define MAX_DISTANCE 400
-#define SPEED 200
 
 NewPing sonarFront(TRIGGER_PIN_FRONT, ECHO_PIN_FRONT, MAX_DISTANCE);
 
@@ -116,17 +120,17 @@ void setup()
 
   WebSocket.setTimeout(1000);
 
-  InitTime  = micros();
-  LastLoop  = InitTime;
-  LoopMin   = 9999;
-  LoopMax   =    0;
-
   Timer1.initialize(1000000); // set timer for 1sec
   // Increase counter 1 when speed sensor pin goes High
   attachInterrupt(digitalPinToInterrupt (MOTOR1), ISR_count1, RISING);
   // Increase counter 2 when speed sensor pin goes High
   attachInterrupt(digitalPinToInterrupt (MOTOR2), ISR_count2, RISING);
   Timer1.attachInterrupt( ISR_timerone ); // Enable the timer
+
+  InitTime  = micros();
+  LastLoop  = InitTime;
+  LoopMin   = 9999;
+  LoopMax   =    0;
 }
 
 void loop()
