@@ -11,12 +11,17 @@ const byte MOTOR1 = 2;  // Motor 1 Interrupt Pin - INT 0
 const byte MOTOR2 = 3;  // Motor 2 Interrupt Pin - INT 1
  
 // Integers for pulse counters
-unsigned int counter1 = 0;
-unsigned int counter2 = 0;
+volatile unsigned int counter1 = 0;
+volatile unsigned int counter2 = 0;
  
 // Float for number of slots in encoder disk
 float diskslots = 20;  // Change to match value of encoder disk
  
+// Constant for wheel diameter
+const float wheeldiameter = 66.10; // Wheel diameter in millimeters, change if different
+
+const float circumference = (wheeldiameter * 3.14) / 10; // Calculate wheel circumference in cm
+const float cm_step = circumference / diskslots;  // CM per Step
 
 // sketch_dec18b_remote_robot
 
@@ -72,6 +77,18 @@ unsigned long LoopCount, InitTime;
 
 String data;
 int btVal;
+
+// Function to convert from centimeters to steps
+int CMtoSteps(float cm) {
+ 
+  int result;  // Final calculation result
+  
+  float f_result = cm / cm_step;  // Calculate result as a float
+  result = (int) f_result; // Convert to an integer (note this is NOT rounded)
+  
+  return result;  // End and return result
+}
+
 // Interrupt Service Routines
  
 // Motor 1 pulse count ISR
