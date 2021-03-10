@@ -38,7 +38,6 @@ float diskslots = 20;  // Change to match value of encoder disk
 #define TRIGGER_PIN_BACK    8
 #define ECHO_PIN_BACK       8
 #define MAX_DISTANCE 400
-#define SPEED 127
 
 NewPing sonarFront(TRIGGER_PIN_FRONT, ECHO_PIN_FRONT, MAX_DISTANCE);
 
@@ -58,8 +57,8 @@ float distance2;          // Calculated distance in cm for Second Sensor
 float soundsp;            // Speed of sound in m/s
 float soundcm = 0.0343;   // Speed of sound in cm/ms
 int iterations = 5;
-unsigned long LastLoop, PreviousLoop, LoopTime;
-unsigned long LoopMin,  LoopAvg,      LoopMax;
+unsigned long LastLoop,  PreviousLoop, LoopTime;
+unsigned long LoopMin,   LoopAvg,      LoopMax;
 unsigned long LoopCount, InitTime;
 
 String data;
@@ -105,6 +104,7 @@ void setup()
 {  
   WebSocket.begin(9600);
   BlueTooth.begin(9600);
+  analogReference(INTERNAL);
   pinMode(MOTORA_cwIN1, OUTPUT);
   pinMode(MOTORAccwIN2, OUTPUT);
   pinMode(MOTORB_cwIN3, OUTPUT);
@@ -230,6 +230,8 @@ void loop()
         BlueTooth.print("LoopMin  : "); BlueTooth.print(LoopMin/1000.0);  BlueTooth.println("[ms]");
         BlueTooth.print("LoopAvg  : "); BlueTooth.print(LoopAvg/1000.0);  BlueTooth.println("[ms]");
         BlueTooth.print("LoopMax  : "); BlueTooth.print(LoopMax/1000.0);  BlueTooth.println("[ms]");
+        BlueTooth.print("Analog0  : "); BlueTooth.print(analogRead(A0));  BlueTooth.println("");
+        BlueTooth.print("Analog1  : "); BlueTooth.print(analogRead(A1));  BlueTooth.println("");
 
         break;      
 
