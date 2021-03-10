@@ -53,8 +53,8 @@ float distance2;          // Calculated distance in cm for Second Sensor
 float soundsp;            // Speed of sound in m/s
 float soundcm = 0.0343;   // Speed of sound in cm/ms
 int iterations = 5;
-unsigned long LastLoop, PreviousLoop, LoopTime;
-unsigned long LoopMin,  LoopAvg,      LoopMax;
+unsigned long LastLoop,  PreviousLoop, LoopTime;
+unsigned long LoopMin,   LoopAvg,      LoopMax;
 unsigned long LoopCount, InitTime;
 
 String data;
