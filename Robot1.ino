@@ -27,6 +27,15 @@ float diskslots = 20;  // Change to match value of encoder disk
 #define MOTORA_EN1    6
 #define MOTORB_EN2   11
 
+#define STOP    48
+#define FORWARD 49
+#define REVERSE 50
+#define LEFT    51
+#define RIGHT   52
+#define INFO    53
+
+unsigned int CurrentAction;
+
 #define SPEED 200
 
 #define TRIGGER_PIN_FRONT  12
@@ -81,16 +90,14 @@ void ISR_count2()
 void ISR_timerone()
 {
   Timer1.detachInterrupt();  // Stop the timer
-  if(counter1 > 0)
+  if(counter1 > 0 || counter2 > 0)
   {
     BlueTooth.print("Motor Speed 1: "); 
     float rotation1 = (counter1 / diskslots) * 60.00;  // calculate RPM for Motor 1
     BlueTooth.print(rotation1);  
     BlueTooth.print(" RPM - "); 
     counter1 = 0;  //  reset counter to zero
-  }
-  if(counter2 > 0)
-  {
+
     BlueTooth.print("Motor Speed 2: "); 
     float rotation2 = (counter2 / diskslots) * 60.00;  // calculate RPM for Motor 2
     BlueTooth.print(rotation2);  
@@ -181,13 +188,14 @@ void loop()
     btVal = -1;
   }
 
-  if (distance1 < 6)
+  if (distance1 < 20 && CurrentAction == FORWARD)
   {
     stoprobot();
+    BlueTooth.println("STOPPED by sensor");
   }
   switch (btVal) 
   {
-      case 49:                                
+      case FORWARD:                                
         BlueTooth.println("Forward");
         if (distance1 > 5)
           forward();
@@ -195,27 +203,27 @@ void loop()
           BlueTooth.println("BLOCKED by sensor");
         break;
 
-      case 50:                 
+      case REVERSE:                 
         BlueTooth.println("Reverse");
         reverse();
         break;
 
-      case 51:         
+      case LEFT:         
        BlueTooth.println("Left");
        left();
         break;
         
-      case 52:                     
+      case RIGHT:                     
         BlueTooth.println("Right");
         right();
         break;
         
-      case 48:                                            
+      case STOP:                                            
         BlueTooth.println("Stop");
         stoprobot();
         break;      
 
-      case 53:                                            
+      case INFO:                                            
         BlueTooth.print("Distance front: ");
 
         if (distance1 >= 400 || distance1 <= 2) {
@@ -241,6 +249,7 @@ void loop()
 
 void forward()
 {
+  CurrentAction = FORWARD;
   digitalWrite(MOTORA_cwIN1, 0);
   digitalWrite(MOTORAccwIN2, 1);
   digitalWrite(MOTORB_cwIN3, 0);
@@ -251,6 +260,7 @@ void forward()
 
 void reverse()
 {
+  CurrentAction = REVERSE;
   digitalWrite(MOTORA_cwIN1, 1);
   digitalWrite(MOTORAccwIN2, 0);
   digitalWrite(MOTORB_cwIN3, 1);
@@ -261,6 +271,7 @@ void reverse()
 
 void left()
 {
+  CurrentAction = LEFT;
   digitalWrite(MOTORA_cwIN1, 0);
   digitalWrite(MOTORAccwIN2, 1);
   digitalWrite(MOTORB_cwIN3, 1);
@@ -271,6 +282,7 @@ void left()
 
 void right()
 {
+  CurrentAction = RIGHT;
   digitalWrite(MOTORA_cwIN1, 1);
   digitalWrite(MOTORAccwIN2, 0);
   digitalWrite(MOTORB_cwIN3, 0);
@@ -281,6 +293,7 @@ void right()
 
 void stoprobot()
 {
+  CurrentAction = STOP;
   digitalWrite(MOTORA_cwIN1, 0);
   digitalWrite(MOTORAccwIN2, 0);
   digitalWrite(MOTORB_cwIN3, 0);
