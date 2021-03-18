@@ -54,6 +54,9 @@ unsigned int CurrentAction;
 #define MAX_DISTANCE 400
 
 NewPing sonarFront(TRIGGER_PIN_FRONT, ECHO_PIN_FRONT, MAX_DISTANCE);
+NewPing sonarBack(TRIGGER_PIN_BACK, ECHO_PIN_BACK, MAX_DISTANCE);
+NewPing sonarRight(TRIGGER_PIN_RIGHT, ECHO_PIN_RIGHT, MAX_DISTANCE);
+// NewPing sonarLeft(ECHO_PIN_LEFT, ECHO_PIN_LEFT, MAX_DISTANCE);
 
 //
 // The hardware serial will be connected to the ESP32 WebSocket
@@ -66,11 +69,16 @@ SoftwareSerial BlueTooth(4, 5); // RX, TX
 
 float duration1;          // First HC-SR04 pulse duration value
 float duration2;          // Second HC-SR04 pulse duration value
+float duration3;          // First HC-SR04 pulse duration value
+float duration4;          // Second HC-SR04 pulse duration value
 float distance1;          // Calculated distance in cm for First Sensor
 float distance2;          // Calculated distance in cm for Second Sensor
+float distance3;          // Calculated distance in cm for First Sensor
+float distance4;          // Calculated distance in cm for Second Sensor
 float soundsp;            // Speed of sound in m/s
 float soundcm = 0.0343;   // Speed of sound in cm/ms
 int iterations = 5;
+
 unsigned long LastLoop,  PreviousLoop, LoopTime;
 unsigned long LoopMin,   LoopAvg,      LoopMax;
 unsigned long LoopCount, InitTime;
@@ -174,10 +182,15 @@ void loop()
   if (LoopTime > LoopMax)                  LoopMax = LoopTime;
   LoopAvg      = LastLoop / LoopCount;
 
-  // Measure duration for first sensor
-  duration1 = sonarFront.ping_median(iterations);
-  // Calculate the distance
-  distance1 = (duration1 / 2) * soundcm;
+  
+  duration1 = sonarFront.ping_median(iterations); // Measure duration for first sensor
+  distance1 = (duration1 / 2) * soundcm;          // Calculate the distance
+  duration2 = sonarBack.ping_median(iterations); // Measure duration for first sensor
+  distance2 = (duration2 / 2) * soundcm;          // Calculate the distance
+  duration3 = sonarRight.ping_median(iterations); // Measure duration for first sensor
+  distance3 = (duration3 / 2) * soundcm;          // Calculate the distance
+//  duration4 = sonarLeft.ping_median(iterations); // Measure duration for first sensor
+//  distance4 = (duration4 / 2) * soundcm;          // Calculate the distance
 
   if (WebSocket.available())
   {  
@@ -242,7 +255,6 @@ void loop()
 
       case INFO:                                            
         BlueTooth.print("Distance front: ");
-
         if (distance1 >= 400 || distance1 <= 2) {
           BlueTooth.println("Out of range");
         }
@@ -250,6 +262,36 @@ void loop()
           BlueTooth.print(distance1);
           BlueTooth.println(" cm");
         }
+
+        BlueTooth.print("Distance back: ");
+//        if (distance2 >= 400 || distance2 <= 2) {
+//          BlueTooth.println("Out of range");
+ //       }
+ //       else {
+          BlueTooth.print(distance2);
+          BlueTooth.println(" cm");
+//        }
+
+        BlueTooth.print("Distance right: ");
+        if (distance3 >= 400 || distance3 <= 2) {
+          BlueTooth.println("Out of range");
+        }
+        else {
+          BlueTooth.print(distance3);
+          BlueTooth.println(" cm");
+        }
+
+//        BlueTooth.print("Distance left: ");
+//        if (distance4 >= 400 || distance4 <= 2) {
+//          BlueTooth.println("Out of range");
+//        }
+//        else {
+//          BlueTooth.print(distance4);
+//          BlueTooth.println(" cm");
+//        }
+
+        
+        
         BlueTooth.print("LoopCount: "); BlueTooth.print(LoopCount);       BlueTooth.println("");
         BlueTooth.print("LoopTime : "); BlueTooth.print(LoopTime/1000.0); BlueTooth.println("[ms]");
         BlueTooth.print("LoopMin  : "); BlueTooth.print(LoopMin/1000.0);  BlueTooth.println("[ms]");
