@@ -56,7 +56,7 @@ unsigned int CurrentAction;
 NewPing sonarFront(TRIGGER_PIN_FRONT, ECHO_PIN_FRONT, MAX_DISTANCE);
 NewPing sonarBack(TRIGGER_PIN_BACK, ECHO_PIN_BACK, MAX_DISTANCE);
 NewPing sonarRight(TRIGGER_PIN_RIGHT, ECHO_PIN_RIGHT, MAX_DISTANCE);
-// NewPing sonarLeft(ECHO_PIN_LEFT, ECHO_PIN_LEFT, MAX_DISTANCE);
+NewPing sonarLeft(ECHO_PIN_LEFT, ECHO_PIN_LEFT, MAX_DISTANCE);
 
 //
 // The hardware serial will be connected to the ESP32 WebSocket
@@ -189,8 +189,8 @@ void loop()
   distance2 = (duration2 / 2) * soundcm;          // Calculate the distance
   duration3 = sonarRight.ping_median(iterations); // Measure duration for first sensor
   distance3 = (duration3 / 2) * soundcm;          // Calculate the distance
-//  duration4 = sonarLeft.ping_median(iterations); // Measure duration for first sensor
-//  distance4 = (duration4 / 2) * soundcm;          // Calculate the distance
+  duration4 = sonarLeft.ping_median(iterations); // Measure duration for first sensor
+  distance4 = (duration4 / 2) * soundcm;          // Calculate the distance
 
   if (WebSocket.available())
   {  
@@ -264,13 +264,13 @@ void loop()
         }
 
         BlueTooth.print("Distance back: ");
-//        if (distance2 >= 400 || distance2 <= 2) {
-//          BlueTooth.println("Out of range");
- //       }
- //       else {
+        if (distance2 >= 400 || distance2 <= 2) {
+          BlueTooth.println("Out of range");
+        }
+        else {
           BlueTooth.print(distance2);
           BlueTooth.println(" cm");
-//        }
+        }
 
         BlueTooth.print("Distance right: ");
         if (distance3 >= 400 || distance3 <= 2) {
@@ -281,14 +281,14 @@ void loop()
           BlueTooth.println(" cm");
         }
 
-//        BlueTooth.print("Distance left: ");
-//        if (distance4 >= 400 || distance4 <= 2) {
-//          BlueTooth.println("Out of range");
-//        }
-//        else {
-//          BlueTooth.print(distance4);
-//          BlueTooth.println(" cm");
-//        }
+        BlueTooth.print("Distance left: ");
+        if (distance4 >= 400 || distance4 <= 2) {
+          BlueTooth.println("Out of range");
+        }
+        else {
+          BlueTooth.print(distance4);
+          BlueTooth.println(" cm");
+        }
 
         
         
