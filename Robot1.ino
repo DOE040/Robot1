@@ -11,8 +11,10 @@ const byte MOTOR1 = 2;  // Motor 1 Interrupt Pin - INT 0
 const byte MOTOR2 = 3;  // Motor 2 Interrupt Pin - INT 1
  
 // Integers for pulse counters
-volatile unsigned int counter1 = 0;
-volatile unsigned int counter2 = 0;
+volatile unsigned long counter1    = 0;
+volatile unsigned long counter1Old = 0;
+volatile unsigned long counter2    = 0;
+volatile unsigned long counter2Old = 0;
  
 // Float for number of slots in encoder disk
 float diskslots = 20;  // Change to match value of encoder disk
@@ -115,19 +117,25 @@ void ISR_count2()
 void ISR_timerone()
 {
   Timer1.detachInterrupt();  // Stop the timer
-  if(counter1 > 0 || counter2 > 0)
+  if(counter1 > counter1Old || counter2 > counter2Old)
   {
     BlueTooth.print("Motor Speed 1: "); 
-    float rotation1 = (counter1 / diskslots) * 60.00;  // calculate RPM for Motor 1
+    float rotation1 = ((counter1 - counter1Old) / diskslots) * 60.00;  // calculate RPM for Motor 1
+    float speedL = ((counter1 - counter1Old) / diskslots) * circumference;
+    BlueTooth.print(speedL);  
+    BlueTooth.print("[cm/s] - "); 
     BlueTooth.print(rotation1);  
-    BlueTooth.print(" RPM - "); 
-    counter1 = 0;  //  reset counter to zero
+    BlueTooth.print("[RPM] - "); 
+    counter1Old = counter1;  //  reset counter to zero
 
     BlueTooth.print("Motor Speed 2: "); 
-    float rotation2 = (counter2 / diskslots) * 60.00;  // calculate RPM for Motor 2
+    float rotation2 = ((counter2 - counter2Old) / diskslots) * 60.00;  // calculate RPM for Motor 2
+    float speedR = ((counter1 - counter1Old) / diskslots) * circumference;
+    BlueTooth.print(speedR);  
+    BlueTooth.print("[cm/s] - "); 
     BlueTooth.print(rotation2);  
-    BlueTooth.println(" RPM"); 
-    counter2 = 0;  //  reset counter to zero
+    BlueTooth.println("[RPM]"); 
+    counter2Old = counter2;  //  reset counter to zero
   }
   Timer1.attachInterrupt( ISR_timerone );  // Enable the timer
 }
@@ -183,13 +191,13 @@ void loop()
   LoopAvg      = LastLoop / LoopCount;
 
   
-  duration1 = sonarFront.ping_median(iterations); // Measure duration for first sensor
+  duration1 = sonarFront.ping_median(iterations); // Measure duration for front sensor
   distance1 = (duration1 / 2) * soundcm;          // Calculate the distance
-  duration2 = sonarBack.ping_median(iterations); // Measure duration for first sensor
+  duration2 = sonarBack.ping_median(iterations);  // Measure duration for back sensor
   distance2 = (duration2 / 2) * soundcm;          // Calculate the distance
-  duration3 = sonarRight.ping_median(iterations); // Measure duration for first sensor
+  duration3 = sonarRight.ping_median(iterations); // Measure duration for right sensor
   distance3 = (duration3 / 2) * soundcm;          // Calculate the distance
-  duration4 = sonarLeft.ping_median(iterations); // Measure duration for first sensor
+  duration4 = sonarLeft.ping_median(iterations);  // Measure duration for left sensor
   distance4 = (duration4 / 2) * soundcm;          // Calculate the distance
 
   if (WebSocket.available())
