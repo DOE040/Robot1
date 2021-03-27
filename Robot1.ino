@@ -130,7 +130,7 @@ void ISR_timerone()
 
     BlueTooth.print("Motor Speed 2: "); 
     float rotation2 = ((counter2 - counter2Old) / diskslots) * 60.00;  // calculate RPM for Motor 2
-    float speedR = ((counter1 - counter1Old) / diskslots) * circumference;
+    float speedR = ((counter2 - counter2Old) / diskslots) * circumference;
     BlueTooth.print(speedR);  
     BlueTooth.print("[cm/s] - "); 
     BlueTooth.print(rotation2);  
@@ -263,41 +263,20 @@ void loop()
 
       case INFO:                                            
         BlueTooth.print("Distance front: ");
-        if (distance1 >= 400 || distance1 <= 2) {
-          BlueTooth.println("Out of range");
-        }
-        else {
-          BlueTooth.print(distance1);
-          BlueTooth.println(" cm");
-        }
+        BlueTooth.print(distance1);
+        BlueTooth.println(" cm");
 
         BlueTooth.print("Distance back: ");
-        if (distance2 >= 400 || distance2 <= 2) {
-          BlueTooth.println("Out of range");
-        }
-        else {
-          BlueTooth.print(distance2);
-          BlueTooth.println(" cm");
-        }
+        BlueTooth.print(distance2);
+        BlueTooth.println(" cm");
 
         BlueTooth.print("Distance right: ");
-        if (distance3 >= 400 || distance3 <= 2) {
-          BlueTooth.println("Out of range");
-        }
-        else {
-          BlueTooth.print(distance3);
-          BlueTooth.println(" cm");
-        }
+        BlueTooth.print(distance3);
+        BlueTooth.println(" cm");
 
         BlueTooth.print("Distance left: ");
-        if (distance4 >= 400 || distance4 <= 2) {
-          BlueTooth.println("Out of range");
-        }
-        else {
-          BlueTooth.print(distance4);
-          BlueTooth.println(" cm");
-        }
-
+        BlueTooth.print(distance4);
+        BlueTooth.println(" cm");
         
         
         BlueTooth.print("LoopCount: "); BlueTooth.print(LoopCount);       BlueTooth.println("");
