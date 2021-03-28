@@ -151,6 +151,11 @@ void ISR_timerone()
     BlueTooth.println("[RPM]"); 
     counter2Old = counter2;  //  reset counter to zero
   }
+  else
+  {
+    speedL = 0.0;
+    speedR = 0.0;
+  }
   Timer1.attachInterrupt( ISR_timerone );  // Enable the timer
 }
  
