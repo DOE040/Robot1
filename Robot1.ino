@@ -184,7 +184,7 @@ void setup()
   attachInterrupt(digitalPinToInterrupt (MOTOR1), ISR_count1, RISING);
   // Increase counter 2 when speed sensor pin goes High
   attachInterrupt(digitalPinToInterrupt (MOTOR2), ISR_count2, RISING);
-  Timer1.attachInterrupt( ISR_timerone ); // Enable the timer
+//  Timer1.attachInterrupt( ISR_timerone ); // Enable the timer
 
   InitTime  = micros();
   LastLoop  = InitTime;
@@ -216,6 +216,25 @@ void loop()
   if (LoopTime > LoopMax)                  LoopMax = LoopTime;
   LoopAvg      = LastLoop / LoopCount;
 
+  //
+  // Calculate the speed as the position difference acquired during the looptime
+  //
+  if(counter1 > counter1Old || counter2 > counter2Old)
+  {
+    speedL = ((counter1 - counter1Old) / diskslots) * circumference / (LoopTime / 1000000.0);
+    counter1Old = counter1;  // Save counter for next time
+    BlueTooth.print(speedL);
+    BlueTooth.print("[cm/s] ");
+    speedR = ((counter2 - counter2Old) / diskslots) * circumference / (LoopTime / 1000000.0);
+    counter2Old = counter2;  // Save counter for next time
+    BlueTooth.print(speedR);
+    BlueTooth.print("[cm/s] ");
+  }
+  else
+  {
+    speedL = 0.0;
+    speedR = 0.0;
+  }
   //
   // Save error values from previous loop to calculate differentials
   //
