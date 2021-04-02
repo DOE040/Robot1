@@ -16,6 +16,7 @@ volatile unsigned long counter1Old = 0;
 volatile unsigned long counter2    = 0;
 volatile unsigned long counter2Old = 0;
 
+unsigned long StopAt = 0;
 
 // Float for number of slots in encoder disk
 float diskslots = 20;  // Change to match value of encoder disk
@@ -37,12 +38,16 @@ Movement RequestedMove = STAND_STILL;
 #define MOTORA_EN1    6
 #define MOTORB_EN2   11
 
-#define STOP    48
-#define FORWARD 49
-#define REVERSE 50
-#define LEFT    51
-#define RIGHT   52
-#define INFO    53
+#define STOP       48
+#define FORWARD    49
+#define REVERSE    50
+#define LEFT       51
+#define RIGHT      52
+#define INFO       53
+#define FORWARD100 54
+#define REVERSE100 55
+#define LEFT100    56
+#define RIGHT100   57
 
 unsigned int CurrentAction;
 
@@ -95,8 +100,8 @@ volatile float speedR;
 float SetpointL, ErrorL, PreviousErrorL, AccumulatedErrorL;
 float SetpointR, ErrorR, PreviousErrorR, AccumulatedErrorR;
 
-float Kp = 0.1;
-float Ki = 0.1;
+float Kp = 1.0;
+float Ki = 1.0;
 float Kd = 0.0;
 
 String data;
@@ -119,6 +124,11 @@ int CMtoSteps(float cm) {
 void ISR_count1()  
 {
   counter1++;  // increment Motor 1 counter value
+  if (StopAt > 0 && counter1 == StopAt)
+  {
+    StopAt = 0;
+    stoprobot();
+  }
 } 
  
 // Motor 2 pulse count ISR
@@ -179,7 +189,7 @@ void setup()
 
   WebSocket.setTimeout(1000);
 
-  Timer1.initialize(1000000); // set timer for 1sec
+//  Timer1.initialize(1000000); // set timer for 1sec
   // Increase counter 1 when speed sensor pin goes High
   attachInterrupt(digitalPinToInterrupt (MOTOR1), ISR_count1, RISING);
   // Increase counter 2 when speed sensor pin goes High
@@ -223,10 +233,14 @@ void loop()
   {
     speedL = ((counter1 - counter1Old) / diskslots) * circumference / (LoopTime / 1000000.0);
     counter1Old = counter1;  // Save counter for next time
+    BlueTooth.print(counter1);
+    BlueTooth.print(" ");
     BlueTooth.print(speedL);
     BlueTooth.print("[cm/s] ");
     speedR = ((counter2 - counter2Old) / diskslots) * circumference / (LoopTime / 1000000.0);
     counter2Old = counter2;  // Save counter for next time
+    BlueTooth.print(counter2);
+    BlueTooth.print(" ");
     BlueTooth.print(speedR);
     BlueTooth.print("[cm/s] ");
   }
@@ -354,8 +368,25 @@ void loop()
           BlueTooth.println("BLOCKED by sensor");
         break;
 
+      case FORWARD100:                                
+        BlueTooth.println("Forward 100");
+        if (distance1 > 5)
+        {
+          StopAt = counter1 + 100;
+          forward();
+        }
+        else
+          BlueTooth.println("BLOCKED by sensor");
+        break;
+
       case REVERSE:                 
         BlueTooth.println("Reverse");
+        reverse();
+        break;
+
+      case REVERSE100:                 
+        BlueTooth.println("Reverse");
+        StopAt = counter1 + 100;
         reverse();
         break;
 
@@ -364,8 +395,20 @@ void loop()
        left();
         break;
         
+      case LEFT100:         
+        BlueTooth.println("Left");
+        StopAt = counter1 + 100;
+        left();
+        break;
+        
       case RIGHT:                     
         BlueTooth.println("Right");
+        right();
+        break;
+        
+      case RIGHT100:                     
+        BlueTooth.println("Right");
+        StopAt = counter1 + 100;
         right();
         break;
         
@@ -399,6 +442,8 @@ void loop()
         BlueTooth.print("LoopMax  : "); BlueTooth.print(LoopMax/1000.0);  BlueTooth.println("[ms]");
         BlueTooth.print("Analog0  : "); BlueTooth.print(analogRead(A0));  BlueTooth.println("");
         BlueTooth.print("Analog1  : "); BlueTooth.print(analogRead(A1));  BlueTooth.println("");
+        BlueTooth.print("cm_step  : "); BlueTooth.print(cm_step);  BlueTooth.println("");
+        BlueTooth.print("circumference  : "); BlueTooth.print(circumference);  BlueTooth.println("");
 
         break;      
 
