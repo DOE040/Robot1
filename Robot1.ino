@@ -15,11 +15,13 @@ volatile unsigned long counter1    = 0;
 volatile unsigned long counter1Old = 0;
 volatile unsigned long counter2    = 0;
 volatile unsigned long counter2Old = 0;
+volatile unsigned long OldMicrosL  = 0;
+volatile unsigned long OldMicrosR  = 0;
 
 unsigned long StopAt = 0;
 
 // Float for number of slots in encoder disk
-float diskslots = 20;  // Change to match value of encoder disk
+float diskslots = 40;  // Change to match value of encoder disk
  
 // Constant for wheel diameter
 const float wheeldiameter = 66.10; // Wheel diameter in millimeters, change if different
@@ -52,7 +54,7 @@ Movement RequestedMove = STAND_STILL;
 unsigned int CurrentAction;
 
 #define SPEED    200
-#define SPEEDCMS  80.0
+#define SPEEDCMS 35.0
 
 #define TRIGGER_PIN_FRONT  12
 #define ECHO_PIN_FRONT     12
@@ -100,8 +102,8 @@ volatile float speedR;
 float SetpointL, ErrorL, PreviousErrorL, AccumulatedErrorL;
 float SetpointR, ErrorR, PreviousErrorR, AccumulatedErrorR;
 
-float Kp = 1.0;
-float Ki = 1.0;
+float Kp = 3.5;
+float Ki = 2.0;
 float Kd = 0.0;
 
 String data;
@@ -123,18 +125,26 @@ int CMtoSteps(float cm) {
 // Motor 1 pulse count ISR
 void ISR_count1()  
 {
-  counter1++;  // increment Motor 1 counter value
-  if (StopAt > 0 && counter1 == StopAt)
+  if (micros() > OldMicrosL+5000)
   {
-    StopAt = 0;
-    stoprobot();
+    counter1++;  // increment Motor 1 counter value
+    if (StopAt > 0 && counter1 == StopAt)
+    {
+      StopAt = 0;
+      stoprobot();
+    }
+    OldMicrosL = micros();
   }
 } 
  
 // Motor 2 pulse count ISR
 void ISR_count2()  
 {
-  counter2++;  // increment Motor 2 counter value
+  if (micros() > OldMicrosR+5000)
+  {
+    counter2++;  // increment Motor 2 counter value
+    OldMicrosR = micros();
+  }
 } 
  
 // TimerOne ISR
@@ -187,13 +197,17 @@ void setup()
   analogWrite(MOTORA_EN1,    0);
   analogWrite(MOTORB_EN2,    0);
 
+  pinMode(MOTOR1, INPUT_PULLUP);
+  pinMode(MOTOR2, INPUT_PULLUP);
+  
+
   WebSocket.setTimeout(1000);
 
 //  Timer1.initialize(1000000); // set timer for 1sec
   // Increase counter 1 when speed sensor pin goes High
-  attachInterrupt(digitalPinToInterrupt (MOTOR1), ISR_count1, RISING);
+  attachInterrupt(digitalPinToInterrupt (MOTOR1), ISR_count1, CHANGE);
   // Increase counter 2 when speed sensor pin goes High
-  attachInterrupt(digitalPinToInterrupt (MOTOR2), ISR_count2, RISING);
+  attachInterrupt(digitalPinToInterrupt (MOTOR2), ISR_count2, CHANGE);
 //  Timer1.attachInterrupt( ISR_timerone ); // Enable the timer
 
   InitTime  = micros();
@@ -288,6 +302,10 @@ void loop()
   //
   // PWM range is 0...255. Prevent running out of bounds
   //
+// Uncomment below lines for fixed PWM values
+//  PWML = 70;
+//  PWMR = 70;
+  
   if (PWML>255) PWML = 255;
   if (PWMR>255) PWMR = 255;
   if (PWML<0)   PWML = 0;
@@ -306,7 +324,12 @@ void loop()
   }
   else
   {
-    BlueTooth.print("PWML = "); BlueTooth.print(PWML); BlueTooth.print(" PWMR = "); BlueTooth.println(PWMR);    
+    BlueTooth.print("PWML = "); BlueTooth.print(PWML);
+    BlueTooth.print(" = "); BlueTooth.print(pPartL);
+    BlueTooth.print("+"); BlueTooth.print(iPartL);
+    BlueTooth.print("+"); BlueTooth.print(dPartL);
+    
+    BlueTooth.print(" PWMR = "); BlueTooth.println(PWMR);    
   }
   analogWrite(MOTORA_EN1,    PWML);
   analogWrite(MOTORB_EN2,    PWMR);
@@ -350,7 +373,7 @@ void loop()
 
   if (distance1 < 30 && CurrentAction == FORWARD)
   {
-    stoprobot();
+//    stoprobot();
     BlueTooth.println("STOPPED by sensor");
   }
   if (distance2 < 30 && CurrentAction == REVERSE)
@@ -372,7 +395,7 @@ void loop()
         BlueTooth.println("Forward 100");
         if (distance1 > 5)
         {
-          StopAt = counter1 + 100;
+          StopAt = counter1 + 193;
           forward();
         }
         else
@@ -386,7 +409,7 @@ void loop()
 
       case REVERSE100:                 
         BlueTooth.println("Reverse");
-        StopAt = counter1 + 100;
+        StopAt = counter1 + 193;
         reverse();
         break;
 
@@ -396,8 +419,8 @@ void loop()
         break;
         
       case LEFT100:         
-        BlueTooth.println("Left");
-        StopAt = counter1 + 100;
+        BlueTooth.println("Left 90");
+        StopAt = counter1 + 27;
         left();
         break;
         
@@ -407,8 +430,8 @@ void loop()
         break;
         
       case RIGHT100:                     
-        BlueTooth.println("Right");
-        StopAt = counter1 + 100;
+        BlueTooth.println("Right 90");
+        StopAt = counter1 + 27;
         right();
         break;
         
