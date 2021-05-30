@@ -15,9 +15,13 @@ volatile unsigned long counter1    = 0;
 volatile unsigned long counter1Old = 0;
 volatile unsigned long counter2    = 0;
 volatile unsigned long counter2Old = 0;
- 
+volatile unsigned long OldMicrosL  = 0;
+volatile unsigned long OldMicrosR  = 0;
+
+unsigned long StopAt = 0;
+
 // Float for number of slots in encoder disk
-float diskslots = 20;  // Change to match value of encoder disk
+float diskslots = 40;  // Change to match value of encoder disk
  
 // Constant for wheel diameter
 const float wheeldiameter = 66.10; // Wheel diameter in millimeters, change if different
@@ -25,7 +29,9 @@ const float wheeldiameter = 66.10; // Wheel diameter in millimeters, change if d
 const float circumference = (wheeldiameter * 3.14) / 10; // Calculate wheel circumference in cm
 const float cm_step = circumference / diskslots;  // CM per Step
 
-// sketch_dec18b_remote_robot
+/* typedef */ enum Movement { STAND_STILL, GO_FORWARD, GO_BACKWARD, SPIN_LEFT, SPIN_RIGHT };
+
+Movement RequestedMove = STAND_STILL;
 
 #define MOTORA_cwIN1 A2
 #define MOTORAccwIN2 A3
@@ -34,16 +40,21 @@ const float cm_step = circumference / diskslots;  // CM per Step
 #define MOTORA_EN1    6
 #define MOTORB_EN2   11
 
-#define STOP    48
-#define FORWARD 49
-#define REVERSE 50
-#define LEFT    51
-#define RIGHT   52
-#define INFO    53
+#define STOP       48
+#define FORWARD    49
+#define REVERSE    50
+#define LEFT       51
+#define RIGHT      52
+#define INFO       53
+#define FORWARD100 54
+#define REVERSE100 55
+#define LEFT100    56
+#define RIGHT100   57
 
 unsigned int CurrentAction;
 
-#define SPEED 200
+#define SPEED    200
+#define SPEEDCMS 35.0
 
 #define TRIGGER_PIN_FRONT  12
 #define ECHO_PIN_FRONT     12
@@ -85,6 +96,16 @@ unsigned long LastLoop,  PreviousLoop, LoopTime;
 unsigned long LoopMin,   LoopAvg,      LoopMax;
 unsigned long LoopCount, InitTime;
 
+volatile float speedL;
+volatile float speedR;
+
+float SetpointL, ErrorL, PreviousErrorL, AccumulatedErrorL;
+float SetpointR, ErrorR, PreviousErrorR, AccumulatedErrorR;
+
+float Kp = 3.5;
+float Ki = 2.0;
+float Kd = 0.0;
+
 String data;
 int btVal;
 
@@ -104,13 +125,26 @@ int CMtoSteps(float cm) {
 // Motor 1 pulse count ISR
 void ISR_count1()  
 {
-  counter1++;  // increment Motor 1 counter value
+  if (micros() > OldMicrosL+5000)
+  {
+    counter1++;  // increment Motor 1 counter value
+    if (StopAt > 0 && counter1 == StopAt)
+    {
+      StopAt = 0;
+      stoprobot();
+    }
+    OldMicrosL = micros();
+  }
 } 
  
 // Motor 2 pulse count ISR
 void ISR_count2()  
 {
-  counter2++;  // increment Motor 2 counter value
+  if (micros() > OldMicrosR+5000)
+  {
+    counter2++;  // increment Motor 2 counter value
+    OldMicrosR = micros();
+  }
 } 
  
 // TimerOne ISR
@@ -121,7 +155,7 @@ void ISR_timerone()
   {
     BlueTooth.print("Motor Speed 1: "); 
     float rotation1 = ((counter1 - counter1Old) / diskslots) * 60.00;  // calculate RPM for Motor 1
-    float speedL = ((counter1 - counter1Old) / diskslots) * circumference;
+    speedL = ((counter1 - counter1Old) / diskslots) * circumference;
     BlueTooth.print(speedL);  
     BlueTooth.print("[cm/s] - "); 
     BlueTooth.print(rotation1);  
@@ -130,12 +164,17 @@ void ISR_timerone()
 
     BlueTooth.print("Motor Speed 2: "); 
     float rotation2 = ((counter2 - counter2Old) / diskslots) * 60.00;  // calculate RPM for Motor 2
-    float speedR = ((counter2 - counter2Old) / diskslots) * circumference;
+    speedR = ((counter2 - counter2Old) / diskslots) * circumference;
     BlueTooth.print(speedR);  
     BlueTooth.print("[cm/s] - "); 
     BlueTooth.print(rotation2);  
     BlueTooth.println("[RPM]"); 
     counter2Old = counter2;  //  reset counter to zero
+  }
+  else
+  {
+    speedL = 0.0;
+    speedR = 0.0;
   }
   Timer1.attachInterrupt( ISR_timerone );  // Enable the timer
 }
@@ -158,19 +197,30 @@ void setup()
   analogWrite(MOTORA_EN1,    0);
   analogWrite(MOTORB_EN2,    0);
 
+  pinMode(MOTOR1, INPUT_PULLUP);
+  pinMode(MOTOR2, INPUT_PULLUP);
+  
+
   WebSocket.setTimeout(1000);
 
-  Timer1.initialize(1000000); // set timer for 1sec
+//  Timer1.initialize(1000000); // set timer for 1sec
   // Increase counter 1 when speed sensor pin goes High
-  attachInterrupt(digitalPinToInterrupt (MOTOR1), ISR_count1, RISING);
+  attachInterrupt(digitalPinToInterrupt (MOTOR1), ISR_count1, CHANGE);
   // Increase counter 2 when speed sensor pin goes High
-  attachInterrupt(digitalPinToInterrupt (MOTOR2), ISR_count2, RISING);
-  Timer1.attachInterrupt( ISR_timerone ); // Enable the timer
+  attachInterrupt(digitalPinToInterrupt (MOTOR2), ISR_count2, CHANGE);
+//  Timer1.attachInterrupt( ISR_timerone ); // Enable the timer
 
   InitTime  = micros();
   LastLoop  = InitTime;
   LoopMin   = 9999;
   LoopMax   =    0;
+
+  SetpointL      = 0.0;
+  ErrorL         = 0.0;
+  PreviousErrorL = 0.0;
+  SetpointR      = 0.0;
+  ErrorR         = 0.0;
+  PreviousErrorR = 0.0;
 }
 
 void loop()
@@ -190,11 +240,106 @@ void loop()
   if (LoopTime > LoopMax)                  LoopMax = LoopTime;
   LoopAvg      = LastLoop / LoopCount;
 
+  //
+  // Calculate the speed as the position difference acquired during the looptime
+  //
+  if(counter1 > counter1Old || counter2 > counter2Old)
+  {
+    speedL = ((counter1 - counter1Old) / diskslots) * circumference / (LoopTime / 1000000.0);
+    counter1Old = counter1;  // Save counter for next time
+    BlueTooth.print(counter1);
+    BlueTooth.print(" ");
+    BlueTooth.print(speedL);
+    BlueTooth.print("[cm/s] ");
+    speedR = ((counter2 - counter2Old) / diskslots) * circumference / (LoopTime / 1000000.0);
+    counter2Old = counter2;  // Save counter for next time
+    BlueTooth.print(counter2);
+    BlueTooth.print(" ");
+    BlueTooth.print(speedR);
+    BlueTooth.print("[cm/s] ");
+  }
+  else
+  {
+    speedL = 0.0;
+    speedR = 0.0;
+  }
+  //
+  // Save error values from previous loop to calculate differentials
+  //
+  PreviousErrorL = ErrorL;
+  PreviousErrorR = ErrorR;
+  //
+  // The error is the difference between the setpoint and the measured speed
+  //
+  ErrorL = SetpointL - speedL;
+  ErrorR = SetpointR - speedR;
+  //
+  // Errors are accumulated for the I-action of the controller
+  // Multiply by the loop time to correct for irregular loop speed
+  //
+  AccumulatedErrorL += ErrorL * (LoopTime / 1000000.0);
+  AccumulatedErrorR += ErrorR * (LoopTime / 1000000.0);
+  //
+  // Errors are differentiated for the D-action of the controller
+  // Divide by the loop time to correct for irregular loop speed
+  //
+  float DiffErrorL = (ErrorL - PreviousErrorL) / (LoopTime / 1000000.0);
+  float DiffErrorR = (ErrorR - PreviousErrorR) / (LoopTime / 1000000.0);
+  //
+  // Controller algorithm in three parts for debugging and educational purposes
+  //
+  float pPartL = Kp * ErrorL;
+  float pPartR = Kp * ErrorR;
+  float iPartL = Ki * AccumulatedErrorL;
+  float iPartR = Ki * AccumulatedErrorR;
+  float dPartL = Kd * DiffErrorL;
+  float dPartR = Kd * DiffErrorR;
+  //
+  // Add up the parts to get the output signals of the controllers
+  //
+  float PWML = pPartL + iPartL + dPartL;
+  float PWMR = pPartR + iPartR + dPartR;
+  //
+  // PWM range is 0...255. Prevent running out of bounds
+  //
+// Uncomment below lines for fixed PWM values
+//  PWML = 70;
+//  PWMR = 70;
   
+  if (PWML>255) PWML = 255;
+  if (PWMR>255) PWMR = 255;
+  if (PWML<0)   PWML = 0;
+  if (PWMR<0)   PWMR = 0;
+  //
+  // When standing still do not accumulate errors and do not drive motors
+  //
+  if (RequestedMove == STAND_STILL)
+  {
+    AccumulatedErrorL = 0.0;
+    AccumulatedErrorR = 0.0;
+    ErrorL = 0.0;
+    ErrorR = 0.0;
+    PWML = 0;
+    PWMR = 0;
+  }
+  else
+  {
+    BlueTooth.print("PWML = "); BlueTooth.print(PWML);
+    BlueTooth.print(" = "); BlueTooth.print(pPartL);
+    BlueTooth.print("+"); BlueTooth.print(iPartL);
+    BlueTooth.print("+"); BlueTooth.print(dPartL);
+    
+    BlueTooth.print(" PWMR = "); BlueTooth.println(PWMR);    
+  }
+  analogWrite(MOTORA_EN1,    PWML);
+  analogWrite(MOTORB_EN2,    PWMR);
+
   duration1 = sonarFront.ping_median(iterations); // Measure duration for front sensor
   distance1 = (duration1 / 2) * soundcm;          // Calculate the distance
+  if (distance1 == 0) distance1 = 401;
   duration2 = sonarBack.ping_median(iterations);  // Measure duration for back sensor
   distance2 = (duration2 / 2) * soundcm;          // Calculate the distance
+  if (distance2 == 0) distance2 = 401;
   duration3 = sonarRight.ping_median(iterations); // Measure duration for right sensor
   distance3 = (duration3 / 2) * soundcm;          // Calculate the distance
   duration4 = sonarLeft.ping_median(iterations);  // Measure duration for left sensor
@@ -226,7 +371,12 @@ void loop()
     btVal = -1;
   }
 
-  if (distance1 < 20 && CurrentAction == FORWARD)
+  if (distance1 < 30 && CurrentAction == FORWARD)
+  {
+//    stoprobot();
+    BlueTooth.println("STOPPED by sensor");
+  }
+  if (distance2 < 30 && CurrentAction == REVERSE)
   {
     stoprobot();
     BlueTooth.println("STOPPED by sensor");
@@ -241,8 +391,25 @@ void loop()
           BlueTooth.println("BLOCKED by sensor");
         break;
 
+      case FORWARD100:                                
+        BlueTooth.println("Forward 100");
+        if (distance1 > 5)
+        {
+          StopAt = counter1 + 193;
+          forward();
+        }
+        else
+          BlueTooth.println("BLOCKED by sensor");
+        break;
+
       case REVERSE:                 
         BlueTooth.println("Reverse");
+        reverse();
+        break;
+
+      case REVERSE100:                 
+        BlueTooth.println("Reverse");
+        StopAt = counter1 + 193;
         reverse();
         break;
 
@@ -251,8 +418,20 @@ void loop()
        left();
         break;
         
+      case LEFT100:         
+        BlueTooth.println("Left 90");
+        StopAt = counter1 + 27;
+        left();
+        break;
+        
       case RIGHT:                     
         BlueTooth.println("Right");
+        right();
+        break;
+        
+      case RIGHT100:                     
+        BlueTooth.println("Right 90");
+        StopAt = counter1 + 27;
         right();
         break;
         
@@ -286,6 +465,8 @@ void loop()
         BlueTooth.print("LoopMax  : "); BlueTooth.print(LoopMax/1000.0);  BlueTooth.println("[ms]");
         BlueTooth.print("Analog0  : "); BlueTooth.print(analogRead(A0));  BlueTooth.println("");
         BlueTooth.print("Analog1  : "); BlueTooth.print(analogRead(A1));  BlueTooth.println("");
+        BlueTooth.print("cm_step  : "); BlueTooth.print(cm_step);  BlueTooth.println("");
+        BlueTooth.print("circumference  : "); BlueTooth.print(circumference);  BlueTooth.println("");
 
         break;      
 
@@ -300,8 +481,11 @@ void forward()
   digitalWrite(MOTORAccwIN2, 1);
   digitalWrite(MOTORB_cwIN3, 0);
   digitalWrite(MOTORBccwIN4, 1);
-  analogWrite(MOTORA_EN1,    SPEED);
-  analogWrite(MOTORB_EN2,    SPEED);
+//  analogWrite(MOTORA_EN1,    SPEED);
+//  analogWrite(MOTORB_EN2,    SPEED);
+  RequestedMove = GO_FORWARD;
+  SetpointL     = SPEEDCMS;
+  SetpointR     = SPEEDCMS;
 }
 
 void reverse()
@@ -311,8 +495,11 @@ void reverse()
   digitalWrite(MOTORAccwIN2, 0);
   digitalWrite(MOTORB_cwIN3, 1);
   digitalWrite(MOTORBccwIN4, 0);
-  analogWrite(MOTORA_EN1,    SPEED);
-  analogWrite(MOTORB_EN2,    SPEED);
+//  analogWrite(MOTORA_EN1,    SPEED);
+//  analogWrite(MOTORB_EN2,    SPEED);
+  RequestedMove = GO_BACKWARD;
+  SetpointL     = SPEEDCMS;
+  SetpointR     = SPEEDCMS;
 }
 
 void left()
@@ -322,8 +509,11 @@ void left()
   digitalWrite(MOTORAccwIN2, 1);
   digitalWrite(MOTORB_cwIN3, 1);
   digitalWrite(MOTORBccwIN4, 0);
-  analogWrite(MOTORA_EN1,    SPEED);
-  analogWrite(MOTORB_EN2,    SPEED);
+//  analogWrite(MOTORA_EN1,    SPEED);
+//  analogWrite(MOTORB_EN2,    SPEED);
+  RequestedMove = SPIN_LEFT;
+  SetpointL     = SPEEDCMS;
+  SetpointR     = SPEEDCMS;
 }
 
 void right()
@@ -333,8 +523,11 @@ void right()
   digitalWrite(MOTORAccwIN2, 0);
   digitalWrite(MOTORB_cwIN3, 0);
   digitalWrite(MOTORBccwIN4, 1);
-  analogWrite(MOTORA_EN1,    SPEED);
-  analogWrite(MOTORB_EN2,    SPEED);
+//  analogWrite(MOTORA_EN1,    SPEED);
+//  analogWrite(MOTORB_EN2,    SPEED);
+  RequestedMove = SPIN_RIGHT;
+  SetpointL     = SPEEDCMS;
+  SetpointR     = SPEEDCMS;
 }
 
 void stoprobot()
@@ -344,6 +537,9 @@ void stoprobot()
   digitalWrite(MOTORAccwIN2, 0);
   digitalWrite(MOTORB_cwIN3, 0);
   digitalWrite(MOTORBccwIN4, 0);
-  analogWrite(MOTORA_EN1,    0);
-  analogWrite(MOTORB_EN2,    0);
+//  analogWrite(MOTORA_EN1,    0);
+//  analogWrite(MOTORB_EN2,    0);
+  RequestedMove = STAND_STILL;
+  SetpointL     = 0.0;
+  SetpointR     = 0.0;
 }
